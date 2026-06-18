@@ -42,7 +42,7 @@
         </div>
         <div style="border-left: 2px solid #555; height: 25px; margin: 0 10px;"></div>
         <div id="join-section">
-            <input type="text" id="join-id-input" placeholder="Enter Friend's Room ID">
+            <input type="text" id="join-id-input" placeholder="Enter 4-Digit ID">
             <button id="join-btn">Connect & Play</button>
         </div>
     </div>
@@ -74,7 +74,7 @@
     let players = {};
     let currentIt = null;
     let tagCooldown = 0;
-    let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 12, grounded: false };
+    let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
 
     const platforms = [
         { x: 0, y: 460, width: 800, height: 40 },
@@ -87,22 +87,28 @@
     window.addEventListener("keydown", (e) => { keys[e.code] = true; });
     window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
-    // Initialize PeerJS using their free global cloud signaling directory
-    peer = new Peer();
+    // Helper function to create a random 4-digit numeric ID string
+    function generateShortId() {
+        return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    const customRoomId = generateShortId();
+
+    // Pass our custom 4-digit ID directly into the Peer constructor
+    peer = new Peer(customRoomId);
 
     peer.on('open', (id) => {
         myId = id;
         myIdDisplay.innerText = "Your Room ID: " + id;
-        statusText.innerText = "Room Created. Share your Room ID or Join a Friend!";
+        statusText.innerText = "Room Created. Share your 4-digit ID or Join a Friend!";
         
-        // Setup local player state blueprint
         players[myId] = {
             id: myId,
             x: Math.random() * 600 + 100,
             y: 100,
             width: 30,
             height: 30,
-            isIt: true // First one in room defaults to 'It'
+            isIt: true
         };
         currentIt = myId;
         isHost = true; 
@@ -110,18 +116,18 @@
         update();
     });
 
-    // Host receiving incoming connections from peer players
+    // Handle incoming connections if someone else inputs our short code
     peer.on('connection', (conn) => {
         isHost = true;
         setupConnection(conn);
     });
 
-    // Client action to connect to a Host room ID
+    // Client action to connect to a short code room ID
     joinBtn.addEventListener('click', () => {
         const targetId = joinInput.value.trim();
         if (!targetId) return;
 
-        statusText.innerText = "Connecting to room...";
+        statusText.innerText = "Connecting to room " + targetId + "...";
         const conn = peer.connect(targetId);
         isHost = false;
         setupConnection(conn);
@@ -134,7 +140,6 @@
             statusText.innerText = "Connected to Arena!";
             
             if (isHost) {
-                // Host introduces new player to the game matrix
                 players[conn.peer] = {
                     id: conn.peer,
                     x: Math.random() * 600 + 100,
@@ -145,7 +150,6 @@
                 };
                 broadcast({ type: 'sync', players, currentIt });
             } else {
-                // Client drops their default host logic and matches state
                 players = {};
             }
         });
@@ -161,7 +165,6 @@
                     players[data.id].x = data.x;
                     players[data.id].y = data.y;
                 }
-                // Host propagates positions to other peers
                 if (isHost) {
                     broadcast(data);
                 }
@@ -226,10 +229,8 @@
 
         handleCollisions(me);
         
-        // Notify network of our new coordinates
         broadcast({ type: 'move', id: myId, x: me.x, y: me.y });
 
-        // Tag Detection Logic
         if (tagCooldown === 0 && me.isIt) {
             for (let id in players) {
                 if (id !== myId && checkCollision(me, players[id])) {
