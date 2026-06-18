@@ -35,8 +35,9 @@
 </div>
 
 <script>
-    // Successfully connected directly to your vexr live deployment link
-    const socket = io("https://tagged.vexr.dev"); 
+    const socket = io("https://tagged.vexr.dev", {
+    transports: ['websocket']
+});
     
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
