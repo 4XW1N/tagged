@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Multiplayer Tag Game</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         body {
             margin: 0; padding: 0;
@@ -35,7 +35,10 @@
 </div>
 
 <script>
-    const socket = io(); // Connects automatically to the hosting origin domain
+    // Fixed: Pointed explicitly to the local Node.js server port
+    // Note: If you deploy your backend online, replace this with your hosting URL (e.g., https://game.onrender.com)
+    const socket = io("http://localhost:3000"); 
+    
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const statusText = document.getElementById("status");
