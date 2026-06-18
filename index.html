@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Multiplayer Tag Game</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #222;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; color: #fff; overflow: hidden;
+        }
+        #game-container { text-align: center; }
+        canvas {
+            background-color: #111;
+            border: 4px solid #444; border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); display: block;
+        }
+        #ui { margin-bottom: 15px; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+        .instructions { margin-top: 15px; font-size: 14px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui"><span id="status" style="color: #bbb;">Connecting to global arena...</span></div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="instructions">
+        <strong>Controls:</strong> WASD or Arrow Keys to Move & Jump | Tag alternative players!
+    </div>
+</div>
+
+<script>
+    const socket = io(); // Connects automatically to the hosting origin domain
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const statusText = document.getElementById("status");
+
+    // Local Physics Configurations
+    const GRAVITY = 0.6;
+    const FRICTION = 0.85;
+
+    let myId = null;
+    let players = {};
+    let platforms = [];
+    
+    // Client control structural container properties
+    let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 12, grounded: false };
+
+    // Key inputs mapping
+    const keys = {};
+    window.addEventListener("keydown", (e) => { keys[e.code] = true; });
+    window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+    // Server Handshakes Network Initialization Listener
+    socket.on('init', (data) => {
+        myId = data.id;
+        players = data.players;
+        platforms = data.platforms;
+        updateStatus();
+        update(); // Launch runtime loop once synced
+    });
+
+    socket.on('newPlayer', (player) => { players[player.id] = player; });
+    
+    socket.on('playerUpdated', (player) => { if(players[player.id]) players[player.id] = player; });
+
+    socket.on('playerDisconnected', (id) => { delete players[id]; updateStatus(); });
+
+    socket.on('tagSwapped', (data) => {
+        players = data.players;
+        updateStatus();
+    });
+
+    function updateStatus() {
+        if (!myId || !players[myId]) return;
+        if (players[myId].isIt) {
+            statusText.innerText = "YOU ARE IT! TAG SOMEONE!";
+            statusText.style.color = "#ef5350";
+        } else {
+            statusText.innerText = "RUN AWAY!";
+            statusText.style.color = "#4caf50";
+        }
+    }
+
+    // Engine Core Calculations Loop
+    function update() {
+        if (!myId || !players[myId]) return;
+
+        let me = players[myId];
+
+        // Read Local Controls (Supports WASD or Arrow mapping natively)
+        if (keys["KeyA"] || keys["ArrowLeft"]) {
+            myPhysics.vx = -myPhysics.speed;
+        } else if (keys["KeyD"] || keys["ArrowRight"]) {
+            myPhysics.vx = myPhysics.speed;
+        } else {
+            myPhysics.vx *= FRICTION;
+        }
+
+        if ((keys["KeyW"] || keys["ArrowUp"] || keys["Space"]) && myPhysics.grounded) {
+            myPhysics.vy = -myPhysics.jumpForce;
+            myPhysics.grounded = false;
+        }
+
+        // Apply Localized Gravity and Coordinates Shift Vector modifications
+        myPhysics.vy += GRAVITY;
+        me.x += myPhysics.vx;
+        me.y += myPhysics.vy;
+
+        // Clean Platform Intersection Collisions locally
+        handleCollisions(me);
+
+        // Notify server of new structural positions
+        socket.emit('playerMove', { x: me.x, y: me.y });
+
+        // Tag Logic Check: If I am it, check if I hit anyone locally to ping server
+        if (me.isIt) {
+            for (let id in players) {
+                if (id !== myId && checkCollision(me, players[id])) {
+                    socket.emit('tagged');
+                }
+            }
+        }
+
+        // Re-paint Screen Frame Canvas Elements
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function handleCollisions(entity) {
+        myPhysics.grounded = false;
+        if (entity.x < 0) entity.x = 0;
+        if (entity.x + entity.width > canvas.width) entity.x = canvas.width - entity.width;
+        if (entity.y < 0) entity.y = 0;
+
+        for (let plat of platforms) {
+            if (entity.x < plat.x + plat.width && entity.x + entity.width > plat.x &&
+                entity.y < plat.y + plat.height && entity.y + entity.height > plat.y) {
+
+                let overlapX = Math.min(entity.x + entity.width, plat.x + plat.width) - Math.max(entity.x, plat.x);
+                let overlapY = Math.min(entity.y + entity.height, plat.y + plat.height) - Math.max(entity.y, plat.y);
+
+                if (overlapX > overlapY) {
+                    if (myPhysics.vy > 0 && entity.y + entity.height - myPhysics.vy <= plat.y + 2) {
+                        entity.y -= overlapY; myPhysics.vy = 0; myPhysics.grounded = true;
+                    } else if (myPhysics.vy < 0) {
+                        entity.y += overlapY; myPhysics.vy = 0;
+                    }
+                } else {
+                    if (myPhysics.vx > 0) entity.x -= overlapX;
+                    else if (myPhysics.vx < 0) entity.x += overlapX;
+                }
+            }
+        }
+    }
+
+    function checkCollision(rect1, rect2) {
+        return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x &&
+               rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Platforms Layout Render Processing
+        ctx.fillStyle = "#444";
+        for (let plat of platforms) {
+            ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+        }
+
+        // Players Vector Layout Render Processing
+        ctx.shadowBlur = 15;
+        for (let id in players) {
+            let p = players[id];
+            let isCurrentPlayer = (id === myId);
+            
+            // UI Color assignment parameters
+            if (p.isIt) {
+                ctx.fillStyle = "#ef5350"; // Red if IT
+                ctx.shadowColor = "#ef5350";
+            } else {
+                ctx.fillStyle = isCurrentPlayer ? "#4caf50" : "#00bcd4"; // Green if local player, blue if online opponents
+                ctx.shadowColor = ctx.fillStyle;
+            }
+            
+            ctx.fillRect(p.x, p.y, p.width, p.height);
+        }
+        ctx.shadowBlur = 0;
+    }
+</script>
+</body>
+</html>
