@@ -4,18 +4,23 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+
+// Fixed: Configured robust CORS parameters to allow local browser connections
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 });
 
-// Serve the frontend files
+// Serve static frontend files if hosted together
 app.use(express.static(__dirname));
 
 let players = {};
 let currentIt = null;
 let tagCooldown = 0;
 
-// Platforms layout data to calculate collisions on client side securely
+// Platforms configuration array
 const platforms = [
     { x: 0, y: 460, width: 800, height: 40 },
     { x: 120, y: 340, width: 200, height: 15 },
@@ -26,7 +31,7 @@ const platforms = [
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    // Create a new player entry upon joining
+    // Create player structural object properties mapping
     players[socket.id] = {
         id: socket.id,
         x: Math.random() * 600 + 100,
@@ -36,42 +41,40 @@ io.on('connection', (socket) => {
         isIt: false
     };
 
-    // First player to join becomes "It"
+    // First player inside room context defaults to IT status loop
     if (Object.keys(players).length === 1) {
         players[socket.id].isIt = true;
         currentIt = socket.id;
     }
 
-    // Send existing room conditions to the newly connected user
+    // Sync room parameters down to connecting client
     socket.emit('init', { id: socket.id, players, platforms });
     
-    // Broadcast the new player arrival to everyone else
+    // Broadcast arrival data package out to active opponents
     socket.broadcast.emit('newPlayer', players[socket.id]);
 
-    // Handle incoming position streams from clients
+    // Handle real-time player position changes
     socket.on('playerMove', (data) => {
         if (players[socket.id]) {
             players[socket.id].x = data.x;
             players[socket.id].y = data.y;
             
-            // Broadcast movement updates to everyone else instantly
+            // Broadcast location parameters back out to the swarm
             socket.broadcast.emit('playerUpdated', players[socket.id]);
         }
     });
 
-    // Handle tag event signals sent by players
+    // Handle tag verification events safely
     socket.on('tagged', () => {
         if (tagCooldown === 0 && socket.id === currentIt) {
-            // Find the closest non-it player to confirm tag validity
             let targetId = null;
             let p1 = players[socket.id];
             
             for (let id in players) {
                 if (id !== socket.id) {
                     let p2 = players[id];
-                    // Basic distance calculation
                     let dist = Math.hypot((p1.x - p2.x), (p1.y - p2.y));
-                    if (dist < 45) { // Close enough to register tag safely
+                    if (dist < 45) { // Validates proximity checks securely
                         targetId = id;
                         break;
                     }
@@ -82,20 +85,20 @@ io.on('connection', (socket) => {
                 players[currentIt].isIt = false;
                 players[targetId].isIt = true;
                 currentIt = targetId;
-                tagCooldown = 60; // 1 second cooldown buffer
+                tagCooldown = 60; // 1-second structural cooldown window
 
                 io.emit('tagSwapped', { currentIt, players });
             }
         }
     });
 
-    // Clear memory states when someone quits
+    // Clear connection structures upon unexpected socket closings
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.id}`);
         const wasIt = players[socket.id]?.isIt;
         delete players[socket.id];
 
-        // Pass "It" flag to someone else if the tagged player leaves
+        // Hand over the torch if the player who is "It" leaves the match prematurely
         if (wasIt && Object.keys(players).length > 0) {
             currentIt = Object.keys(players)[0];
             players[currentIt].isIt = true;
@@ -106,10 +109,10 @@ io.on('connection', (socket) => {
     });
 });
 
-// Cooldown ticking loop
+// Structural ticking calculation looping mechanics
 setInterval(() => {
     if (tagCooldown > 0) tagCooldown--;
 }, 1000 / 60);
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server executing successfully on port ${PORT}`));
+const PORT = 3000;
+server.listen(PORT, () => console.log(`Server running smoothly on http://localhost:${PORT}`));
