@@ -99,6 +99,6 @@ setInterval(() => {
     if (tagCooldown > 0) tagCooldown--;
 }, 1000 / 60);
 
-// 🔥 FIXED LINE: Uses process.env.PORT so vexr.dev can successfully assign its own network routing port
+// Uses process.env.PORT so vexr.dev can successfully assign its own network routing port
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running smoothly on port ${PORT}`));
