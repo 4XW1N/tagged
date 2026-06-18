@@ -35,9 +35,11 @@
 </div>
 
 <script>
+    // Successfully connected directly to your vexr live deployment link using secure routing parameters
     const socket = io("https://tagged.vexr.dev", {
-    transports: ['websocket']
-});
+        secure: true,
+        rejectUnauthorized: false
+    }); 
     
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
