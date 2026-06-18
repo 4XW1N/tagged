@@ -35,9 +35,8 @@
 </div>
 
 <script>
-    // Fixed: Pointed explicitly to the local Node.js server port
-    // Note: If you deploy your backend online, replace this with your hosting URL (e.g., https://game.onrender.com)
-    const socket = io("http://localhost:3000"); 
+    // ⚠️ CHANGE THIS LINE BELOW TO YOUR ACTUAL VEXR.DEV URL:
+    const socket = io("https://your-vexr-app-url.vexr.dev"); 
     
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -51,33 +50,24 @@
     let players = {};
     let platforms = [];
     
-    // Client control structural container properties
     let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 12, grounded: false };
 
-    // Key inputs mapping
     const keys = {};
     window.addEventListener("keydown", (e) => { keys[e.code] = true; });
     window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
-    // Server Handshakes Network Initialization Listener
     socket.on('init', (data) => {
         myId = data.id;
         players = data.players;
         platforms = data.platforms;
         updateStatus();
-        update(); // Launch runtime loop once synced
+        update(); 
     });
 
     socket.on('newPlayer', (player) => { players[player.id] = player; });
-    
     socket.on('playerUpdated', (player) => { if(players[player.id]) players[player.id] = player; });
-
     socket.on('playerDisconnected', (id) => { delete players[id]; updateStatus(); });
-
-    socket.on('tagSwapped', (data) => {
-        players = data.players;
-        updateStatus();
-    });
+    socket.on('tagSwapped', (data) => { players = data.players; updateStatus(); });
 
     function updateStatus() {
         if (!myId || !players[myId]) return;
@@ -90,13 +80,10 @@
         }
     }
 
-    // Engine Core Calculations Loop
     function update() {
         if (!myId || !players[myId]) return;
-
         let me = players[myId];
 
-        // Read Local Controls (Supports WASD or Arrow mapping natively)
         if (keys["KeyA"] || keys["ArrowLeft"]) {
             myPhysics.vx = -myPhysics.speed;
         } else if (keys["KeyD"] || keys["ArrowRight"]) {
@@ -110,18 +97,13 @@
             myPhysics.grounded = false;
         }
 
-        // Apply Localized Gravity and Coordinates Shift Vector modifications
         myPhysics.vy += GRAVITY;
         me.x += myPhysics.vx;
         me.y += myPhysics.vy;
 
-        // Clean Platform Intersection Collisions locally
         handleCollisions(me);
-
-        // Notify server of new structural positions
         socket.emit('playerMove', { x: me.x, y: me.y });
 
-        // Tag Logic Check: If I am it, check if I hit anyone locally to ping server
         if (me.isIt) {
             for (let id in players) {
                 if (id !== myId && checkCollision(me, players[id])) {
@@ -130,7 +112,6 @@
             }
         }
 
-        // Re-paint Screen Frame Canvas Elements
         draw();
         requestAnimationFrame(update);
     }
@@ -169,28 +150,23 @@
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Platforms Layout Render Processing
         ctx.fillStyle = "#444";
         for (let plat of platforms) {
             ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
         }
 
-        // Players Vector Layout Render Processing
         ctx.shadowBlur = 15;
         for (let id in players) {
             let p = players[id];
             let isCurrentPlayer = (id === myId);
             
-            // UI Color assignment parameters
             if (p.isIt) {
-                ctx.fillStyle = "#ef5350"; // Red if IT
+                ctx.fillStyle = "#ef5350";
                 ctx.shadowColor = "#ef5350";
             } else {
-                ctx.fillStyle = isCurrentPlayer ? "#4caf50" : "#00bcd4"; // Green if local player, blue if online opponents
+                ctx.fillStyle = isCurrentPlayer ? "#4caf50" : "#00bcd4";
                 ctx.shadowColor = ctx.fillStyle;
             }
-            
             ctx.fillRect(p.x, p.y, p.width, p.height);
         }
         ctx.shadowBlur = 0;
