@@ -13,7 +13,7 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             height: 100vh; color: #fff; overflow: hidden;
-            touch-action: none; /* Prevents screen scrolling/pull-to-refresh on mobile */
+            touch-action: none; /* Prevents accidental screen scrolling or pull-to-refresh */
         }
         #menu-container {
             background-color: #111;
@@ -46,7 +46,6 @@
         
         #game-container { display: none; text-align: center; width: 100%; flex-direction: column; align-items: center; }
         
-        /* Mobile Scaling Wrapper */
         #game-wrapper {
             position: relative;
             width: 100%;
@@ -55,7 +54,7 @@
             justify-content: center;
         }
 
-        /* Dynamically sizes to fit desktop or mobile while preserving the 800x500 physics */
+        /* Dynamically scales while leaving the 800x500 calculation box clean */
         canvas {
             width: 100%;
             max-width: 800px;
@@ -71,34 +70,31 @@
         #back-btn { margin-top: 15px; background: #555; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         #back-btn:hover { background: #666; }
 
-        /* --- MOBILE TOUCH CONTROLS --- */
+        /* --- FIXED MOBILE CONTROLS POSITIONING --- */
         #mobile-controls {
-            display: none; /* Hidden on PC, shown via JS on touch devices */
-            position: absolute;
-            bottom: 20px;
-            left: 0;
+            display: none; /* Becomes flex via JS on mobile touchscreens */
             width: 100%;
+            max-width: 760px;
+            margin-top: 15px; /* Safely pushes controls completely below game screen */
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 10px;
             box-sizing: border-box;
-            pointer-events: none; /* Lets you tap the canvas where there are no buttons */
         }
         .touch-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 28px;
-            border-radius: 50%;
-            width: 65px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 32px;
+            border-radius: 16px;
+            width: 75px;
             height: 65px;
-            pointer-events: auto;
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
             display: flex; align-items: center; justify-content: center;
         }
-        .touch-btn:active { background: rgba(255, 255, 255, 0.4); }
-        .left-controls { display: flex; gap: 15px; }
+        .touch-btn:active { background: rgba(255, 255, 255, 0.35); }
+        .left-controls { display: flex; gap: 20px; }
         .right-controls { display: flex; }
     </style>
 </head>
@@ -126,15 +122,15 @@
     
     <div id="game-wrapper">
         <canvas id="gameCanvas" width="800" height="500"></canvas>
-        
-        <div id="mobile-controls">
-            <div class="left-controls">
-                <div class="touch-btn" id="btn-left">◀</div>
-                <div class="touch-btn" id="btn-right">▶</div>
-            </div>
-            <div class="right-controls">
-                <div class="touch-btn" id="btn-jump">▲</div>
-            </div>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="left-controls">
+            <div class="touch-btn" id="btn-left">◀</div>
+            <div class="touch-btn" id="btn-right">▶</div>
+        </div>
+        <div class="right-controls">
+            <div class="touch-btn" id="btn-jump">▲</div>
         </div>
     </div>
 
@@ -158,7 +154,6 @@
     const joinInput = document.getElementById("join-id-input");
     const joinBtn = document.getElementById("join-btn");
 
-    // Game Physics & Global Mechanics configurations
     const GRAVITY = 0.6;
     const FRICTION = 0.85;
     
@@ -172,7 +167,6 @@
     let currentIt = null;
     let tagCooldown = 0;
 
-    // Fixed: Added myPhysics so the online mode has an object to reference!
     let p1Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
     let p2Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false }; 
     let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
@@ -184,17 +178,16 @@
         { x: 300, y: 220, width: 200, height: 15 }
     ];
 
-    // --- INPUT HANDLING (KEYBOARD & MOBILE) ---
+    // --- INPUT HANDLING ---
     const keys = {};
     window.addEventListener("keydown", (e) => { keys[e.code] = true; });
     window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
-    // Detect if device supports touch to activate mobile UI
+    // Show controls only if hardware supports standard touch inputs
     if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
         document.getElementById('mobile-controls').style.display = 'flex';
     }
 
-    // Bind on-screen buttons to standard keyboard event logic
     function bindTouchButton(elementId, keyCode) {
         const btn = document.getElementById(elementId);
         btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyCode] = true; });
@@ -213,7 +206,7 @@
         menuContainer.style.display = 'none';
         gameContainer.style.display = 'flex';
         
-        controlsText.innerHTML = "<strong>Player 1 (Green/Red):</strong> WASD | <strong>Player 2 (Blue/Red):</strong> Arrow Keys / Mobile Buttons";
+        controlsText.innerHTML = "<strong>Player 1 (Green):</strong> WASD | <strong>Player 2 (Blue):</strong> Arrow Keys / Mobile Controls";
         statusText.innerText = "LOCAL MODE: Player 1 is IT!";
         statusText.style.color = "#ef5350";
 
@@ -229,7 +222,7 @@
         initOnlinePeerSettings();
     });
 
-    // --- ONLINE P2P NETWORK ---
+    // --- ONLINE P2P NETWORK HANDLING ---
     
     function generateShortId() {
         return Math.floor(1000 + Math.random() * 9000).toString();
@@ -284,7 +277,7 @@
             gameMode = 'online';
             menuContainer.style.display = 'none';
             gameContainer.style.display = 'flex';
-            controlsText.innerHTML = "<strong>Controls:</strong> WASD / Arrow Keys / On-Screen Touch Buttons";
+            controlsText.innerHTML = "<strong>Controls:</strong> Keyboard or Mobile Touch Buttons";
             
             if (isHost) {
                 players[conn.peer] = { id: conn.peer, x: Math.random() * 600 + 100, y: 100, width: 30, height: 30, isIt: false };
@@ -405,7 +398,6 @@
         if (!myId || !players[myId]) return;
         let me = players[myId];
 
-        // Touch buttons map directly to ArrowLeft/ArrowRight/ArrowUp here
         if (keys["KeyA"] || keys["ArrowLeft"]) myPhysics.vx = -myPhysics.speed;
         else if (keys["KeyD"] || keys["ArrowRight"]) myPhysics.vx = myPhysics.speed;
         else myPhysics.vx *= FRICTION;
