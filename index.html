@@ -62,7 +62,6 @@
     const joinInput = document.getElementById("join-id-input");
     const joinBtn = document.getElementById("join-btn");
 
-    // Physics Engine Configuration
     const GRAVITY = 0.6;
     const FRICTION = 0.85;
 
@@ -87,15 +86,36 @@
     window.addEventListener("keydown", (e) => { keys[e.code] = true; });
     window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
-    // Helper function to create a random 4-digit numeric ID string
     function generateShortId() {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
     const customRoomId = generateShortId();
 
-    // Pass our custom 4-digit ID directly into the Peer constructor
-    peer = new Peer(customRoomId);
+    // 🔥 FIXED CONFIGURATION: Free public STUN and TURN servers added to bypass strict cell networks & external firewalls
+    const peerConfig = {
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                // Open Relay TURN server fallback channels
+                {
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                {
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ]
+        }
+    };
+
+    // Instantiate PeerJS incorporating our network traversal server blueprints
+    peer = new Peer(customRoomId, peerConfig);
 
     peer.on('open', (id) => {
         myId = id;
@@ -116,19 +136,18 @@
         update();
     });
 
-    // Handle incoming connections if someone else inputs our short code
     peer.on('connection', (conn) => {
         isHost = true;
         setupConnection(conn);
     });
 
-    // Client action to connect to a short code room ID
     joinBtn.addEventListener('click', () => {
         const targetId = joinInput.value.trim();
         if (!targetId) return;
 
         statusText.innerText = "Connecting to room " + targetId + "...";
-        const conn = peer.connect(targetId);
+        // Pass network configurations into our outbound connection request
+        const conn = peer.connect(targetId, { reliable: true });
         isHost = false;
         setupConnection(conn);
     });
