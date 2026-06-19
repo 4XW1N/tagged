@@ -44,7 +44,7 @@
         .action-btn { background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .action-btn:hover { background: #45a049; }
         
-        #game-container { display: none; text-align: center; width: 100%; display: none; flex-direction: column; align-items: center; }
+        #game-container { display: none; text-align: center; width: 100%; flex-direction: column; align-items: center; }
         
         /* Mobile Scaling Wrapper */
         #game-wrapper {
@@ -172,8 +172,10 @@
     let currentIt = null;
     let tagCooldown = 0;
 
+    // Fixed: Added myPhysics so the online mode has an object to reference!
     let p1Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
     let p2Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false }; 
+    let myPhysics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
 
     const platforms = [
         { x: 0, y: 460, width: 800, height: 40 },
@@ -200,7 +202,6 @@
         btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[keyCode] = false; });
     }
     
-    // We map touch buttons to arrow keys (which triggers movement natively in our physics logic)
     bindTouchButton('btn-left', 'ArrowLeft');
     bindTouchButton('btn-right', 'ArrowRight');
     bindTouchButton('btn-jump', 'ArrowUp');
