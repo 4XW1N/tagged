@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TAGGED - Multiplayer Arena</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
@@ -13,6 +13,7 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             height: 100vh; color: #fff; overflow: hidden;
+            touch-action: none; /* Prevents screen scrolling/pull-to-refresh on mobile */
         }
         #menu-container {
             background-color: #111;
@@ -22,7 +23,7 @@
             text-align: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
             max-width: 450px;
-            width: 100%;
+            width: 90%;
         }
         h1 { margin-top: 0; font-size: 48px; color: #ef5350; letter-spacing: 4px; font-weight: 900; }
         .menu-btn {
@@ -43,16 +44,62 @@
         .action-btn { background: #4caf50; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .action-btn:hover { background: #45a049; }
         
-        #game-container { display: none; text-align: center; }
+        #game-container { display: none; text-align: center; width: 100%; display: none; flex-direction: column; align-items: center; }
+        
+        /* Mobile Scaling Wrapper */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Dynamically sizes to fit desktop or mobile while preserving the 800x500 physics */
         canvas {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 8 / 5;
             background-color: #111;
             border: 4px solid #444; border-radius: 8px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); display: block;
+            box-sizing: border-box;
         }
+
         #status { font-size: 24px; font-weight: bold; margin-bottom: 15px; display: block; }
         .instructions { margin-top: 15px; font-size: 14px; color: #aaa; background: #111; padding: 10px; border-radius: 6px; }
         #back-btn { margin-top: 15px; background: #555; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         #back-btn:hover { background: #666; }
+
+        /* --- MOBILE TOUCH CONTROLS --- */
+        #mobile-controls {
+            display: none; /* Hidden on PC, shown via JS on touch devices */
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            pointer-events: none; /* Lets you tap the canvas where there are no buttons */
+        }
+        .touch-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 28px;
+            border-radius: 50%;
+            width: 65px;
+            height: 65px;
+            pointer-events: auto;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .touch-btn:active { background: rgba(255, 255, 255, 0.4); }
+        .left-controls { display: flex; gap: 15px; }
+        .right-controls { display: flex; }
     </style>
 </head>
 <body>
@@ -76,7 +123,21 @@
 
 <div id="game-container">
     <div><span id="status" style="color: #bbb;">Loading arena matrix...</span></div>
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div id="mobile-controls">
+            <div class="left-controls">
+                <div class="touch-btn" id="btn-left">◀</div>
+                <div class="touch-btn" id="btn-right">▶</div>
+            </div>
+            <div class="right-controls">
+                <div class="touch-btn" id="btn-jump">▲</div>
+            </div>
+        </div>
+    </div>
+
     <div class="instructions" id="controls-text">
         Controls Loading...
     </div>
@@ -101,7 +162,7 @@
     const GRAVITY = 0.6;
     const FRICTION = 0.85;
     
-    let gameMode = null; // 'local' or 'online'
+    let gameMode = null; 
     let peer = null;
     let connections = []; 
     let isHost = false;
@@ -111,9 +172,8 @@
     let currentIt = null;
     let tagCooldown = 0;
 
-    // Movement engine specs for local or online processing
     let p1Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false };
-    let p2Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false }; // Used in local mode
+    let p2Physics = { vx: 0, vy: 0, speed: 6, jumpForce: 15, grounded: false }; 
 
     const platforms = [
         { x: 0, y: 460, width: 800, height: 40 },
@@ -122,23 +182,40 @@
         { x: 300, y: 220, width: 200, height: 15 }
     ];
 
+    // --- INPUT HANDLING (KEYBOARD & MOBILE) ---
     const keys = {};
     window.addEventListener("keydown", (e) => { keys[e.code] = true; });
     window.addEventListener("keyup", (e) => { keys[e.code] = false; });
 
+    // Detect if device supports touch to activate mobile UI
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.getElementById('mobile-controls').style.display = 'flex';
+    }
+
+    // Bind on-screen buttons to standard keyboard event logic
+    function bindTouchButton(elementId, keyCode) {
+        const btn = document.getElementById(elementId);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyCode] = true; });
+        btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyCode] = false; });
+        btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[keyCode] = false; });
+    }
+    
+    // We map touch buttons to arrow keys (which triggers movement natively in our physics logic)
+    bindTouchButton('btn-left', 'ArrowLeft');
+    bindTouchButton('btn-right', 'ArrowRight');
+    bindTouchButton('btn-jump', 'ArrowUp');
+
     // --- MENU INTERFACES ---
     
-    // Mode A: Trigger Local 2-Player Game Mechanics
     document.getElementById("local-btn").addEventListener("click", () => {
         gameMode = 'local';
         menuContainer.style.display = 'none';
-        gameContainer.style.display = 'block';
+        gameContainer.style.display = 'flex';
         
-        controlsText.innerHTML = "<strong>Player 1 (Green/Red):</strong> WASD to Move & Jump | <strong>Player 2 (Blue/Red):</strong> Arrow Keys to Move & Jump";
+        controlsText.innerHTML = "<strong>Player 1 (Green/Red):</strong> WASD | <strong>Player 2 (Blue/Red):</strong> Arrow Keys / Mobile Buttons";
         statusText.innerText = "LOCAL MODE: Player 1 is IT!";
         statusText.style.color = "#ef5350";
 
-        // Setup two discrete local characters inside the collection map
         players['p1'] = { id: 'p1', x: 200, y: 100, width: 30, height: 30, isIt: true };
         players['p2'] = { id: 'p2', x: 600, y: 100, width: 30, height: 30, isIt: false };
         currentIt = 'p1';
@@ -146,20 +223,19 @@
         runGameLoop();
     });
 
-    // Mode B: Toggle UI for Online Peer-to-Peer Config
     document.getElementById("online-btn").addEventListener("click", () => {
         onlineSetupUi.style.display = "block";
         initOnlinePeerSettings();
     });
 
-    // --- ONLINE P2P REWRITES ---
+    // --- ONLINE P2P NETWORK ---
     
     function generateShortId() {
         return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
     function initOnlinePeerSettings() {
-        if (peer) return; // Prevent double creation
+        if (peer) return; 
         
         const customRoomId = generateShortId();
         const peerConfig = {
@@ -179,7 +255,6 @@
             myId = id;
             myIdDisplay.innerText = "Your Room ID: " + id;
             
-            // Set default room setup assuming role of host until a peer hooks up
             players[myId] = { id: myId, x: Math.random() * 600 + 100, y: 100, width: 30, height: 30, isIt: true };
             currentIt = myId;
             isHost = true;
@@ -207,8 +282,8 @@
         conn.on('open', () => {
             gameMode = 'online';
             menuContainer.style.display = 'none';
-            gameContainer.style.display = 'block';
-            controlsText.innerHTML = "<strong>Controls:</strong> WASD or Arrow Keys to Move & Jump | Run from or Tag your friend!";
+            gameContainer.style.display = 'flex';
+            controlsText.innerHTML = "<strong>Controls:</strong> WASD / Arrow Keys / On-Screen Touch Buttons";
             
             if (isHost) {
                 players[conn.peer] = { id: conn.peer, x: Math.random() * 600 + 100, y: 100, width: 30, height: 30, isIt: false };
@@ -283,12 +358,10 @@
         requestAnimationFrame(runGameLoop);
     }
 
-    // Processing Logic: Local Dual Splits
     function updateLocalPhysics() {
         let p1 = players['p1'];
         let p2 = players['p2'];
 
-        // Player 1 Movement (WASD Keys)
         if (keys["KeyA"]) p1Physics.vx = -p1Physics.speed;
         else if (keys["KeyD"]) p1Physics.vx = p1Physics.speed;
         else p1Physics.vx *= FRICTION;
@@ -301,7 +374,6 @@
         p1.x += p1Physics.vx; p1.y += p1Physics.vy;
         handleCollisions(p1, p1Physics);
 
-        // Player 2 Movement (Arrow Keys)
         if (keys["ArrowLeft"]) p2Physics.vx = -p2Physics.speed;
         else if (keys["ArrowRight"]) p2Physics.vx = p2Physics.speed;
         else p2Physics.vx *= FRICTION;
@@ -314,7 +386,6 @@
         p2.x += p2Physics.vx; p2.y += p2Physics.vy;
         handleCollisions(p2, p2Physics);
 
-        // Local Tag Tracking Loop
         if (tagCooldown === 0) {
             if (checkCollision(p1, p2)) {
                 p1.isIt = !p1.isIt;
@@ -329,11 +400,11 @@
         if (tagCooldown > 0) tagCooldown--;
     }
 
-    // Processing Logic: Online Network Serialization
     function updateOnlinePhysics() {
         if (!myId || !players[myId]) return;
         let me = players[myId];
 
+        // Touch buttons map directly to ArrowLeft/ArrowRight/ArrowUp here
         if (keys["KeyA"] || keys["ArrowLeft"]) myPhysics.vx = -myPhysics.speed;
         else if (keys["KeyD"] || keys["ArrowRight"]) myPhysics.vx = myPhysics.speed;
         else myPhysics.vx *= FRICTION;
@@ -367,7 +438,6 @@
         if (tagCooldown > 0) tagCooldown--;
     }
 
-    // Universal Collision & Boundary Calculations
     function handleCollisions(entity, physicsObj) {
         physicsObj.grounded = false;
         if (entity.x < 0) entity.x = 0;
@@ -400,23 +470,20 @@
                rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
     }
 
-    // Graphical Render pipeline
     function drawArenaLayout() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Render Map Platforms
         ctx.fillStyle = "#444";
         for (let plat of platforms) {
             ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
         }
 
-        // Render Active Combatants
         ctx.shadowBlur = 15;
         for (let id in players) {
             let p = players[id];
             
             if (p.isIt) {
-                ctx.fillStyle = "#ef5350"; // Red glow if you're IT
+                ctx.fillStyle = "#ef5350";
                 ctx.shadowColor = "#ef5350";
             } else {
                 if (gameMode === 'local') {
