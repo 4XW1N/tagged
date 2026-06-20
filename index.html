@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NEON TAG</title>
+<title>TAGGED</title>
 <style>
   :root{
     --bg:#06060f;
@@ -346,7 +345,7 @@
   <!-- ============ HOME / LOBBY OVERLAY ============ -->
   <div class="overlay" id="homeOverlay">
     <div class="panel">
-      <h1 class="title neon-text">NEON TAG</h1>
+      <h1 class="title neon-text">TAGGED</h1>
       <div class="subtitle">ONLINE ARENA &mdash; PEER TO PEER</div>
 
       <label>YOUR NAME</label>
@@ -374,7 +373,7 @@
       <!-- JOIN PANE -->
       <div id="joinPane" class="hidden">
         <label>ROOM CODE</label>
-        <input type="text" id="joinCodeInput" maxlength="4" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:1.3em;">
+        <input type="text" id="joinCodeInput" maxlength="5" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:1.3em;">
         <button class="btn-main" id="joinBtn">JOIN ROOM</button>
         <div class="playerList" id="joinPlayerList"></div>
       </div>
@@ -414,7 +413,7 @@
 "use strict";
 
 /* =====================================================================
-   NEON TAG — host-authoritative 2D multiplayer tag game over PeerJS
+   TAGGED — host-authoritative 2D multiplayer tag game over PeerJS
    Single-file, deployable as-is to GitHub Pages.
 ===================================================================== */
 
@@ -560,10 +559,8 @@ function hostCreateRoom(){
   setStatus('Creating room...', '');
   createBtn.disabled = true;
   createPeer(id=>{
-    roomCode = id.slice(-4).toUpperCase();
-    // Use a predictable peer id mapping: we want short room codes, but PeerJS ids are long.
-    // Simplest reliable approach: register peer with a custom id = ROOMCODE.
-    // Destroy this peer and recreate with desired id.
+    // This first peer only exists to get a connection open; we destroy it
+    // and recreate with a short custom id so the room code is shareable.
     peer.destroy();
     const desiredId = 'neontag-' + rid(5);
     peer = new Peer(desiredId, { debug: 1 });
