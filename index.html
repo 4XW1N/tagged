@@ -647,10 +647,17 @@ function hostCreateRoom(){
     const desiredId = 'tagged-' + rid(4);
     peer = new Peer(desiredId, { debug: 1 });
     peer.on('open', pid=>{
+      const alreadyHosting = !roomCodeBox.classList.contains('hidden');
       roomCode = pid.replace('tagged-','');
       roomCodeText.textContent = roomCode;
       roomCodeBox.classList.remove('hidden');
       isHost = true;
+      if(alreadyHosting){
+        // This is a reconnect after a dropped broker connection, not a fresh room.
+        // Keep existing players/lobby state intact.
+        setStatus('Room reconnected.', 'ok');
+        return;
+      }
       myId = uid();
       const p = mkPlayer(myId, myName, myColor, 0);
       p.isHost = true;
@@ -662,6 +669,26 @@ function hostCreateRoom(){
     });
     peer.on('connection', conn=>{
       setupHostConnection(conn);
+    });
+    peer.on('disconnected', ()=>{
+      // The websocket link to the signaling broker dropped (sleep, background tab,
+      // wifi blip). The peer object is still alive, so try to silently restore it
+      // under the same room code before telling the host anything is wrong.
+      console.warn('Peer disconnected from broker, attempting reconnect...');
+      if(roomCodeBox.classList.contains('hidden')) return; // not actually hosting yet
+      setStatus('Reconnecting room...', '');
+      try{
+        peer.reconnect();
+      }catch(e){
+        console.error('Reconnect failed', e);
+      }
+    });
+    peer.on('close', ()=>{
+      if(roomCodeBox.classList.contains('hidden')) return;
+      setStatus('Room connection closed. Click Create Room to host a new one.', 'error');
+      roomCodeBox.classList.add('hidden');
+      startBtn.classList.add('hidden');
+      createBtn.disabled = false;
     });
     peer.on('error', err=>{
       console.error(err);
