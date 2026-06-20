@@ -546,12 +546,34 @@ function genObstacles(){
   return list;
 }
 
+function friendlyPeerError(err){
+  switch(err.type){
+    case 'peer-unavailable':
+      return 'No room found with that code. Double check it and try again.';
+    case 'network':
+      return 'Network error. Check your connection and try again.';
+    case 'disconnected':
+      return 'Lost connection to the signaling server. Try again.';
+    case 'server-error':
+    case 'socket-error':
+    case 'socket-closed':
+      return 'Could not reach the connection server. Try again in a moment.';
+    default:
+      return 'Connection error (' + err.type + '). Try again.';
+  }
+}
+
 function createPeer(cb){
   peer = new Peer(undefined, { debug: 1 });
   peer.on('open', id=>{ cb(id); });
   peer.on('error', err=>{
     console.error('Peer error', err);
-    setStatus('Connection error: ' + err.type, 'error');
+    setStatus(friendlyPeerError(err), 'error');
+    // Always re-enable whichever button triggered this, so the user can retry.
+    joinBtn.disabled = false;
+    createBtn.disabled = false;
+    hostConn = null;
+    hostConnOpen = false;
   });
 }
 
@@ -583,8 +605,16 @@ function hostCreateRoom(){
     });
     peer.on('error', err=>{
       console.error(err);
-      setStatus('Error: ' + err.type, 'error');
+      if(err.type === 'unavailable-id'){
+        // Extremely rare id collision — just retry with a fresh code.
+        setStatus('Room code collision, retrying...', '');
+        peer.destroy();
+        hostCreateRoom();
+        return;
+      }
+      setStatus(friendlyPeerError(err), 'error');
       createBtn.disabled = false;
+      roomCodeBox.classList.add('hidden');
     });
   });
 }
