@@ -25,7 +25,7 @@
     -webkit-tap-highlight-color: transparent;
     touch-action:none;
   }
-  #app{position:fixed;inset:0;width:100%;height:100%;}
+  #app{position:fixed;inset:0;width:100%;height:100%; display:flex; align-items:center; justify-content:center;}
   canvas{display:block;background:var(--bg);}
 
   .neon-text{
@@ -42,6 +42,7 @@
     background:radial-gradient(ellipse at center, #120a2e 0%, #06060f 70%);
     z-index:50;
     padding:20px;
+    overflow-y:auto;
   }
   .panel{
     width:100%;max-width:440px;
@@ -52,6 +53,7 @@
     padding:28px 26px;
     color:#eaf6ff;
     animation:fadeIn .4s ease;
+    margin:auto;
   }
   @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
@@ -204,35 +206,45 @@
   .statusMsg.error{color:var(--pink);}
   .statusMsg.ok{color:var(--green);}
 
-  /* ---------- HUD ---------- */
-  #hud{
-    position:fixed;inset:0;
-    pointer-events:none;
-    z-index:20;
-    font-family:'Courier New', monospace;
-    display:none;
-  }
-  #hud.active{display:block;}
+  /* local mode tile on the home panel */
+  .localBtnRow{margin-top:18px;}
 
-  .hudTop{
-    position:absolute;top:0;left:0;right:0;
-    display:flex;justify-content:space-between;align-items:flex-start;
-    padding:14px 16px;
+  /* ---------- Game wrapper / HUD ---------- */
+  #gameScreen{
+    display:none;
+    position:fixed;inset:0;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:14px;
+  }
+  #gameScreen.active{display:flex;}
+
+  #gameWrapper{
+    position:relative;
+    width:100%;
+    max-width:900px;
+  }
+
+  #hudTop{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:8px;
+    gap:8px;
+    flex-wrap:wrap;
   }
   .hudBadge{
     background:rgba(10,10,28,0.75);
     border:1.5px solid var(--cyan);
     border-radius:8px;
-    padding:8px 14px;
+    padding:7px 13px;
     color:var(--cyan);
-    font-size:0.85em;
+    font-size:0.82em;
     letter-spacing:2px;
-    backdrop-filter:blur(4px);
   }
   #itBadge{
     border-color:var(--pink);
     color:var(--pink);
-    font-size:1em;
+    font-size:0.95em;
     transition:all .2s;
   }
   #itBadge.youAreIt{
@@ -241,47 +253,92 @@
     animation:pulse 0.7s infinite alternate;
   }
   @keyframes pulse{from{transform:scale(1);}to{transform:scale(1.04);}}
+  #timerBadge{font-size:1.05em;color:var(--yellow);border-color:var(--yellow);}
 
-  #timerBadge{font-size:1.1em;color:var(--yellow);border-color:var(--yellow);}
-  #cooldownBadge{color:var(--green);border-color:var(--green);}
-
-  #scoreboard{
-    position:absolute;top:60px;right:14px;
-    background:rgba(10,10,28,0.75);
-    border:1.5px solid var(--purple);
-    border-radius:8px;
-    padding:8px 12px;
+  #scoreStrip{
+    display:flex;gap:8px;flex-wrap:wrap;
+    margin-bottom:8px;
+  }
+  .scoreChip{
+    display:flex;align-items:center;gap:6px;
+    background:rgba(10,10,28,0.7);
+    border:1px solid var(--purple);
+    border-radius:20px;
+    padding:4px 10px 4px 6px;
     font-size:0.72em;
     color:#ddd;
-    min-width:140px;
-    backdrop-filter:blur(4px);
   }
-  #scoreboard .scoreRow{display:flex;justify-content:space-between;gap:10px;padding:2px 0;}
-  #scoreboard .scoreName{display:flex;align-items:center;gap:6px;}
-  #scoreboard .scoreDot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 6px currentColor;}
+  .scoreDot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
 
-  .joystick{
-    position:absolute;
-    bottom:30px;left:30px;
-    width:120px;height:120px;
-    pointer-events:auto;
+  canvas#gameCanvas{
+    width:100%;
+    max-width:900px;
+    aspect-ratio: 16/10;
+    background:#090918;
+    border:3px solid var(--purple);
+    border-radius:10px;
+    box-shadow:0 0 30px rgba(155,43,255,0.35), inset 0 0 40px rgba(155,43,255,0.08);
+    display:block;
+  }
+
+  #controlsHint{
+    margin-top:10px;
+    text-align:center;
+    font-size:0.7em;
+    color:#888;
+    letter-spacing:1px;
+  }
+
+  #quitBtn{
+    margin-top:12px;
+    background:transparent;
+    border:1.5px solid #555;
+    color:#999;
+    padding:8px 18px;
+    font-size:0.75em;
+    border-radius:8px;
+  }
+  #quitBtn:hover{border-color:var(--pink);color:var(--pink);}
+
+  /* mobile touch controls */
+  #mobileControls{
     display:none;
+    width:100%;
+    max-width:900px;
+    justify-content:space-between;
+    margin-top:12px;
   }
-  .joystick.show{display:block;}
-  .joyBase{
-    width:100%;height:100%;
-    border-radius:50%;
-    background:rgba(43,246,255,0.08);
+  #mobileControls.show{display:flex;}
+  .touch-btn{
+    background:rgba(43,246,255,0.1);
     border:2px solid rgba(43,246,255,0.4);
+    color:var(--cyan);
+    font-size:28px;
+    border-radius:14px;
+    width:64px;height:58px;
+    display:flex;align-items:center;justify-content:center;
+    user-select:none;-webkit-user-select:none;
   }
-  .joyStick{
-    position:absolute;top:35px;left:35px;
-    width:50px;height:50px;
-    border-radius:50%;
-    background:rgba(43,246,255,0.5);
-    border:2px solid var(--cyan);
-    box-shadow:0 0 14px var(--cyan);
+  .touch-btn:active{background:rgba(43,246,255,0.3);}
+  .touchGroupLeft{display:flex;gap:14px;}
+
+  .toast{
+    position:fixed;
+    top:20px;left:50%;
+    transform:translateX(-50%);
+    background:rgba(10,10,28,0.9);
+    border:1.5px solid var(--yellow);
+    color:var(--yellow);
+    padding:8px 20px;
+    border-radius:20px;
+    font-size:0.85em;
+    letter-spacing:2px;
+    z-index:80;
+    opacity:0;
+    transition:opacity .3s, top .3s;
+    pointer-events:none;
   }
+  .toast.show{opacity:1;top:30px;}
 
   #endOverlay{
     position:fixed;inset:0;
@@ -300,34 +357,6 @@
   }
   #endOverlay .sub{color:var(--cyan);font-size:0.85em;letter-spacing:2px;margin-bottom:24px;}
 
-  .toast{
-    position:fixed;
-    top:90px;left:50%;
-    transform:translateX(-50%);
-    background:rgba(10,10,28,0.9);
-    border:1.5px solid var(--yellow);
-    color:var(--yellow);
-    padding:8px 20px;
-    border-radius:20px;
-    font-size:0.85em;
-    letter-spacing:2px;
-    z-index:30;
-    opacity:0;
-    transition:opacity .3s, top .3s;
-    pointer-events:none;
-  }
-  .toast.show{opacity:1;top:100px;}
-
-  #connStatus{
-    position:fixed;
-    bottom:10px;left:50%;
-    transform:translateX(-50%);
-    font-size:0.65em;
-    color:#555;
-    z-index:25;
-    letter-spacing:1px;
-  }
-
   ::-webkit-scrollbar{width:6px;}
   ::-webkit-scrollbar-thumb{background:var(--purple);border-radius:3px;}
 
@@ -340,19 +369,22 @@
 <body>
 
 <div id="app">
-  <canvas id="game"></canvas>
 
   <!-- ============ HOME / LOBBY OVERLAY ============ -->
   <div class="overlay" id="homeOverlay">
     <div class="panel">
       <h1 class="title neon-text">TAGGED</h1>
-      <div class="subtitle">ONLINE ARENA &mdash; PEER TO PEER</div>
+      <div class="subtitle">NEON PLATFORM ARENA</div>
 
       <label>YOUR NAME</label>
       <input type="text" id="nameInput" maxlength="12" placeholder="Enter name...">
 
       <label>YOUR COLOR</label>
       <div class="colorRow" id="colorRow"></div>
+
+      <div class="localBtnRow">
+        <button class="btn-secondary" id="localBtn">PLAY LOCAL (2 PLAYER)</button>
+      </div>
 
       <div class="tabRow" style="margin-top:20px;">
         <button class="tabBtn active" id="tabHost">HOST GAME</button>
@@ -382,21 +414,30 @@
     </div>
   </div>
 
-  <!-- ============ HUD ============ -->
-  <div id="hud">
-    <div class="hudTop">
-      <div class="hudBadge" id="itBadge">IT: ---</div>
-      <div class="hudBadge" id="timerBadge">3:00</div>
-    </div>
-    <div id="scoreboard"></div>
-    <div class="joystick" id="joystick">
-      <div class="joyBase"></div>
-      <div class="joyStick" id="joyStickHandle"></div>
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="gameScreen">
+    <div id="gameWrapper">
+      <div id="hudTop">
+        <div class="hudBadge" id="itBadge">IT: ---</div>
+        <div class="hudBadge" id="timerBadge">3:00</div>
+      </div>
+      <div id="scoreStrip"></div>
+      <canvas id="gameCanvas" width="900" height="560"></canvas>
+      <div id="controlsHint">WASD or Arrow Keys to move &middot; W / Up / Space to jump &middot; S / Down to drop through ledges</div>
+      <div id="mobileControls">
+        <div class="touchGroupLeft">
+          <div class="touch-btn" id="btnLeft">&#9664;</div>
+          <div class="touch-btn" id="btnRight">&#9654;</div>
+        </div>
+        <div class="touch-btn" id="btnJump">&#9650;</div>
+      </div>
+      <div style="text-align:center;">
+        <button id="quitBtn">QUIT TO MENU</button>
+      </div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
-  <div id="connStatus"></div>
 
   <!-- ============ END GAME OVERLAY ============ -->
   <div id="endOverlay">
@@ -413,7 +454,8 @@
 "use strict";
 
 /* =====================================================================
-   TAGGED — host-authoritative 2D multiplayer tag game over PeerJS
+   TAGGED — neon platformer tag, host-authoritative PeerJS multiplayer
+   plus a same-keyboard local 2-player mode.
    Single-file, deployable as-is to GitHub Pages.
 ===================================================================== */
 
@@ -428,20 +470,32 @@ const COLORS = [
   {name:'white',  hex:'#f0f0ff'},
 ];
 
-const ARENA = { w: 2400, h: 1600 };
-const PLAYER_RADIUS = 18;
-const PLAYER_SPEED = 280;          // px/s
-const IT_SPEED_BONUS = 1.12;       // "it" is slightly faster
-const TAG_COOLDOWN = 2.0;          // seconds of immunity after being tagged
-const TAG_DISTANCE = PLAYER_RADIUS * 2 + 6;
-const GAME_DURATION = 180;         // seconds
-const TICK_RATE = 1000/30;         // server tick (host) ms
-const OBSTACLE_COUNT = 9;
+/* ---------------------------------------------------------------------
+   Arena / physics constants
+--------------------------------------------------------------------- */
+const ARENA = { w: 900, h: 560 };
+const PLAYER_W = 30, PLAYER_H = 30;
+const GRAVITY = 0.6;
+const FRICTION = 0.85;
+const MOVE_SPEED = 6;
+const JUMP_FORCE = 15;
+const TAG_COOLDOWN_FRAMES = 60; // ~1s at 60fps
+const GAME_DURATION = 180; // seconds
+
+// One-way / solid platform layout (scaled to the 900x560 canvas)
+const PLATFORMS = [
+  { x: 0,   y: 520, width: 900, height: 40, solid: true  }, // ground
+  { x: 130, y: 390, width: 220, height: 14, solid: false },
+  { x: 550, y: 390, width: 220, height: 14, solid: false },
+  { x: 340, y: 250, width: 220, height: 14, solid: false },
+  { x: 60,  y: 150, width: 160, height: 14, solid: false },
+  { x: 680, y: 150, width: 160, height: 14, solid: false },
+];
 
 /* ---------------------------------------------------------------------
    Utility
 --------------------------------------------------------------------- */
-function rid(len=4){
+function rid(len=5){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s='';
   for(let i=0;i<len;i++) s+=chars[Math.floor(Math.random()*chars.length)];
@@ -449,19 +503,25 @@ function rid(len=4){
 }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
-function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
-function lerp(a,b,t){ return a+(b-a)*t; }
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function aabb(a,b){
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
 
 /* ---------------------------------------------------------------------
    DOM refs
 --------------------------------------------------------------------- */
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
 const homeOverlay = document.getElementById('homeOverlay');
-const hud = document.getElementById('hud');
+const gameScreen = document.getElementById('gameScreen');
 const endOverlay = document.getElementById('endOverlay');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
 const nameInput = document.getElementById('nameInput');
 const colorRow = document.getElementById('colorRow');
+const localBtn = document.getElementById('localBtn');
 const tabHost = document.getElementById('tabHost');
 const tabJoin = document.getElementById('tabJoin');
 const hostPane = document.getElementById('hostPane');
@@ -475,29 +535,30 @@ const hostPlayerList = document.getElementById('hostPlayerList');
 const joinPlayerList = document.getElementById('joinPlayerList');
 const startBtn = document.getElementById('startBtn');
 const statusMsg = document.getElementById('statusMsg');
+
 const itBadge = document.getElementById('itBadge');
 const timerBadge = document.getElementById('timerBadge');
-const scoreboardEl = document.getElementById('scoreboard');
+const scoreStrip = document.getElementById('scoreStrip');
 const toastEl = document.getElementById('toast');
-const connStatusEl = document.getElementById('connStatus');
 const endSubtitle = document.getElementById('endSubtitle');
 const endScoreList = document.getElementById('endScoreList');
 const playAgainBtn = document.getElementById('playAgainBtn');
-const joystick = document.getElementById('joystick');
-const joyHandle = document.getElementById('joyStickHandle');
+const quitBtn = document.getElementById('quitBtn');
+const controlsHint = document.getElementById('controlsHint');
+const mobileControls = document.getElementById('mobileControls');
 
 /* ---------------------------------------------------------------------
    Local profile state
 --------------------------------------------------------------------- */
 let myName = '';
-let myColor = COLORS[Math.floor(Math.random()*COLORS.length)].hex;
+let myColor = COLORS[0].hex;
 let myId = uid();
 let isHost = false;
 let roomCode = '';
 
-COLORS.forEach(c=>{
+COLORS.forEach((c,i)=>{
   const sw = document.createElement('div');
-  sw.className = 'swatch';
+  sw.className = 'swatch' + (i===0?' selected':'');
   sw.style.background = c.hex;
   sw.dataset.hex = c.hex;
   sw.addEventListener('click', ()=>{
@@ -508,43 +569,45 @@ COLORS.forEach(c=>{
   });
   colorRow.appendChild(sw);
 });
-colorRow.children[0].classList.add('selected');
-myColor = COLORS[0].hex;
 
 nameInput.value = 'Player' + Math.floor(Math.random()*900+100);
 nameInput.addEventListener('input', ()=>{ myName = nameInput.value.trim(); broadcastLobbyIfNeeded(); });
 myName = nameInput.value;
 
 /* ---------------------------------------------------------------------
-   Networking layer (PeerJS) — host-authoritative star topology
+   Game mode + shared state
 --------------------------------------------------------------------- */
-let peer = null;
-let conns = {};          // peerId -> DataConnection  (host only, keyed by peerjs id)
-let hostConn = null;     // client only
-let hostConnOpen = false; // true only after the DataConnection 'open' event fires
-let players = {};        // id -> {id,name,color,x,y,vx,vy,it,score,immuneUntil,connected}
+let gameMode = null; // 'local' | 'online'
 let gameState = 'lobby'; // lobby | playing | ended
+let players = {};    // id -> {id,name,color,x,y,vx,vy,grounded,it,score,immuneFrames,input:{left,right,jump,drop}}
 let itId = null;
 let timeLeft = GAME_DURATION;
-let obstacles = [];
 
 function setStatus(msg, type){
   statusMsg.textContent = msg || '';
   statusMsg.className = 'statusMsg' + (type?(' '+type):'');
 }
 
-function genObstacles(){
-  // deterministic-ish layout, host generates once and sends to clients
-  const list = [];
-  for(let i=0;i<OBSTACLE_COUNT;i++){
-    const w = 80 + Math.random()*160;
-    const h = 80 + Math.random()*160;
-    const x = 150 + Math.random()*(ARENA.w-300-w);
-    const y = 150 + Math.random()*(ARENA.h-300-h);
-    list.push({x,y,w,h, hue: COLORS[i%COLORS.length].hex});
-  }
-  return list;
+function mkPlayer(id,name,color,spawnIndex){
+  const spawnXs = [120, 780, 450, 250, 650];
+  return {
+    id, name: name||'Player', color: color||'#ffffff',
+    x: spawnXs[spawnIndex % spawnXs.length], y: 80,
+    vx:0, vy:0, grounded:false,
+    it:false, score:0,
+    immuneFrames:0,
+    isHost:false,
+    input:{left:false,right:false,jump:false,drop:false},
+  };
 }
+
+/* ---------------------------------------------------------------------
+   Networking layer (PeerJS) — host-authoritative star topology
+--------------------------------------------------------------------- */
+let peer = null;
+let conns = {};
+let hostConn = null;
+let hostConnOpen = false;
 
 function friendlyPeerError(err){
   switch(err.type){
@@ -569,7 +632,6 @@ function createPeer(cb){
   peer.on('error', err=>{
     console.error('Peer error', err);
     setStatus(friendlyPeerError(err), 'error');
-    // Always re-enable whichever button triggered this, so the user can retry.
     joinBtn.disabled = false;
     createBtn.disabled = false;
     hostConn = null;
@@ -581,20 +643,19 @@ function createPeer(cb){
 function hostCreateRoom(){
   setStatus('Creating room...', '');
   createBtn.disabled = true;
-  createPeer(id=>{
-    // This first peer only exists to get a connection open; we destroy it
-    // and recreate with a short custom id so the room code is shareable.
+  createPeer(()=>{
     peer.destroy();
-    const desiredId = 'neontag-' + rid(5);
+    const desiredId = 'tagged-' + rid(5);
     peer = new Peer(desiredId, { debug: 1 });
     peer.on('open', pid=>{
-      roomCode = pid.replace('neontag-','').toUpperCase();
+      roomCode = pid.replace('tagged-','').toUpperCase();
       roomCodeText.textContent = roomCode;
       roomCodeBox.classList.remove('hidden');
       isHost = true;
       myId = uid();
-      players[myId] = mkPlayer(myId, myName, myColor, true);
-      obstacles = genObstacles();
+      const p = mkPlayer(myId, myName, myColor, 0);
+      p.isHost = true;
+      players[myId] = p;
       renderLobbyList();
       startBtn.classList.remove('hidden');
       setStatus('Room ready. Share the code!', 'ok');
@@ -606,7 +667,6 @@ function hostCreateRoom(){
     peer.on('error', err=>{
       console.error(err);
       if(err.type === 'unavailable-id'){
-        // Extremely rare id collision — just retry with a fresh code.
         setStatus('Room code collision, retrying...', '');
         peer.destroy();
         hostCreateRoom();
@@ -617,20 +677,6 @@ function hostCreateRoom(){
       roomCodeBox.classList.add('hidden');
     });
   });
-}
-
-function mkPlayer(id,name,color,host){
-  return {
-    id, name: name||'Player', color: color||'#ffffff',
-    x: ARENA.w/2 + (Math.random()-0.5)*200,
-    y: ARENA.h/2 + (Math.random()-0.5)*200,
-    vx:0, vy:0,
-    it:false, score:0,
-    immuneUntil:0,
-    isHost: !!host,
-    connected:true,
-    input:{x:0,y:0},
-  };
 }
 
 function setupHostConnection(conn){
@@ -649,16 +695,12 @@ function setupHostConnection(conn){
 }
 
 function handleClientLeave(peerId){
-  const pdata = conns[peerId];
   delete conns[peerId];
-  // find player id mapped to this peer connection
   for(const pid in players){
     if(players[pid]._peerId === peerId){
       const wasIt = players[pid].it;
       delete players[pid];
-      if(wasIt){
-        reassignIt();
-      }
+      if(wasIt) reassignIt();
       break;
     }
   }
@@ -671,10 +713,10 @@ function handleHostMessage(conn, msg){
   if(!msg || !msg.type) return;
   switch(msg.type){
     case 'join': {
-      const pid = msg.id;
-      const p = mkPlayer(pid, msg.name, msg.color, false);
+      const idx = Object.keys(players).length;
+      const p = mkPlayer(msg.id, msg.name, msg.color, idx);
       p._peerId = conn.peer;
-      players[pid] = p;
+      players[msg.id] = p;
       renderLobbyList();
       broadcastLobby();
       break;
@@ -705,11 +747,9 @@ function renderLobbyList(){
     list.appendChild(row);
   });
 }
-function escapeHtml(s){
-  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
 
 function broadcastLobbyIfNeeded(){
+  if(gameMode!=='online') return;
   if(isHost && players[myId]){
     players[myId].name = myName;
     players[myId].color = myColor;
@@ -724,7 +764,6 @@ function broadcastLobby(){
   const payload = {
     type:'lobby',
     players: Object.values(players).map(p=>({id:p.id,name:p.name,color:p.color,isHost:p.isHost})),
-    obstacles,
   };
   for(const c in conns){ conns[c].send(payload); }
 }
@@ -733,7 +772,7 @@ function broadcastState(){
   const payload = {
     type:'state',
     players: Object.values(players).map(p=>({
-      id:p.id,name:p.name,color:p.color,x:p.x,y:p.y,it:p.it,score:p.score,immune: performance.now()<p.immuneUntil
+      id:p.id,name:p.name,color:p.color,x:p.x,y:p.y,it:p.it,score:p.score,immune: p.immuneFrames>0
     })),
     itId, timeLeft, gameState,
   };
@@ -746,7 +785,7 @@ function clientJoinRoom(code){
   joinBtn.disabled = true;
   hostConnOpen = false;
   createPeer(()=>{
-    const targetId = 'neontag-' + code.toLowerCase();
+    const targetId = 'tagged-' + code.toLowerCase();
     const conn = peer.connect(targetId, {reliable:true});
     hostConn = conn;
 
@@ -764,11 +803,13 @@ function clientJoinRoom(code){
       clearTimeout(connectTimeout);
       hostConnOpen = true;
       isHost = false;
+      gameMode = 'online';
       myId = uid();
       conn.send({type:'join', id:myId, name:myName, color:myColor});
       setStatus('Connected! Waiting for host to start...', 'ok');
       joinBtn.disabled = true;
       tabHost.style.display='none';
+      localBtn.style.display='none';
     });
     conn.on('data', data=>{ handleClientMessage(data); });
     conn.on('close', ()=>{
@@ -793,16 +834,19 @@ function handleClientMessage(msg){
   switch(msg.type){
     case 'lobby': {
       players = {};
-      msg.players.forEach(p=>{ players[p.id] = {...p}; });
-      if(msg.obstacles) obstacles = msg.obstacles;
+      msg.players.forEach(p=>{ players[p.id] = {...mkPlayer(p.id,p.name,p.color,0), ...p}; });
       renderLobbyList();
       break;
     }
     case 'state': {
       msg.players.forEach(p=>{
-        if(!players[p.id]) players[p.id] = {...p};
+        if(!players[p.id]) players[p.id] = {...mkPlayer(p.id,p.name,p.color,0), ...p};
         else Object.assign(players[p.id], p);
       });
+      // remove players the host no longer reports
+      const liveIds = new Set(msg.players.map(p=>p.id));
+      Object.keys(players).forEach(id=>{ if(!liveIds.has(id)) delete players[id]; });
+
       itId = msg.itId;
       timeLeft = msg.timeLeft;
       if(gameState!=='playing' && msg.gameState==='playing'){
@@ -827,44 +871,73 @@ function handleClientMessage(msg){
 }
 
 /* ---------------------------------------------------------------------
-   Game lifecycle
+   Local 2-player mode
+--------------------------------------------------------------------- */
+function startLocalGame(){
+  gameMode = 'local';
+  isHost = true; // local "host" drives the sim
+  players = {};
+  const p1 = mkPlayer('p1','Player 1','#2bf6ff',0);
+  const p2 = mkPlayer('p2','Player 2','#ff2bd6',1);
+  p1.it = true;
+  players.p1 = p1; players.p2 = p2;
+  itId = 'p1';
+  timeLeft = GAME_DURATION;
+  gameState = 'playing';
+  myId = null; // no single "me" in local mode — both rendered as players
+  enterGame();
+  lastFrameTime = performance.now();
+  requestAnimationFrame(localLoop);
+}
+
+/* ---------------------------------------------------------------------
+   Game lifecycle (shared)
 --------------------------------------------------------------------- */
 function startGameAsHost(){
   if(Object.keys(players).length < 2){
     setStatus('Need at least 2 players to start.', 'error');
     return;
   }
-  // pick random "it"
   const ids = Object.keys(players);
   itId = ids[Math.floor(Math.random()*ids.length)];
-  ids.forEach(id=>{
+  ids.forEach((id,idx)=>{
+    const spawnXs = [120, 780, 450, 250, 650];
     players[id].it = (id===itId);
-    players[id].x = ARENA.w/2 + (Math.random()-0.5)*600;
-    players[id].y = ARENA.h/2 + (Math.random()-0.5)*400;
+    players[id].x = spawnXs[idx % spawnXs.length];
+    players[id].y = 80;
+    players[id].vx = 0; players[id].vy = 0;
     players[id].score = 0;
+    players[id].immuneFrames = 0;
   });
   timeLeft = GAME_DURATION;
   gameState = 'playing';
   enterGame();
   broadcastState();
-  lastTick = performance.now();
+  lastFrameTime = performance.now();
   requestAnimationFrame(hostLoop);
 }
 
 function enterGame(){
   homeOverlay.classList.add('hidden');
-  hud.classList.add('active');
+  gameScreen.classList.add('active');
   endOverlay.classList.remove('active');
-  resizeCanvas();
-  if(isTouchDevice()) joystick.classList.add('show');
+  if(gameMode==='local'){
+    controlsHint.textContent = 'Player 1: WASD (S to drop) — Player 2: Arrow Keys (Down to drop)';
+    mobileControls.classList.remove('show');
+  } else {
+    controlsHint.textContent = 'WASD or Arrow Keys to move — W/Up/Space to jump — S/Down to drop through ledges';
+    if(isTouchDevice()) mobileControls.classList.add('show');
+  }
   requestAnimationFrame(renderLoop);
 }
 
 function backToLobby(){
   gameState = 'lobby';
-  hud.classList.remove('active');
+  gameMode = null;
+  gameScreen.classList.remove('active');
   endOverlay.classList.remove('active');
   homeOverlay.classList.remove('hidden');
+  mobileControls.classList.remove('show');
 }
 
 function reassignIt(){
@@ -875,69 +948,110 @@ function reassignIt(){
 }
 
 /* ---------------------------------------------------------------------
-   Host simulation loop (authoritative)
+   Physics — shared by host sim and local sim
 --------------------------------------------------------------------- */
-let lastTick = 0;
-function hostLoop(now){
-  if(!isHost || gameState!=='playing'){ return; }
-  const dt = Math.min(0.05, (now-lastTick)/1000 || 0.016);
-  lastTick = now;
+function stepPlayerPhysics(p){
+  const inp = p.input || {};
+  if(inp.left) p.vx = -MOVE_SPEED;
+  else if(inp.right) p.vx = MOVE_SPEED;
+  else p.vx *= FRICTION;
 
-  // integrate movement
-  for(const id in players){
-    const p = players[id];
-    const inp = p.input || {x:0,y:0};
-    let len = Math.hypot(inp.x, inp.y);
-    let ix = len>0? inp.x/len : 0;
-    let iy = len>0? inp.y/len : 0;
-    const speed = PLAYER_SPEED * (p.it ? IT_SPEED_BONUS : 1);
-    let nx = p.x + ix*speed*dt;
-    let ny = p.y + iy*speed*dt;
-    nx = clamp(nx, PLAYER_RADIUS, ARENA.w-PLAYER_RADIUS);
-    ny = clamp(ny, PLAYER_RADIUS, ARENA.h-PLAYER_RADIUS);
-    // obstacle collision (simple AABB push-out)
-    obstacles.forEach(o=>{
-      if(nx > o.x-PLAYER_RADIUS && nx < o.x+o.w+PLAYER_RADIUS &&
-         ny > o.y-PLAYER_RADIUS && ny < o.y+o.h+PLAYER_RADIUS){
-        // push out along smaller penetration axis
-        const overlapLeft = (nx) - (o.x-PLAYER_RADIUS);
-        const overlapRight = (o.x+o.w+PLAYER_RADIUS) - nx;
-        const overlapTop = (ny) - (o.y-PLAYER_RADIUS);
-        const overlapBottom = (o.y+o.h+PLAYER_RADIUS) - ny;
-        const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-        if(minOverlap===overlapLeft) nx = o.x-PLAYER_RADIUS;
-        else if(minOverlap===overlapRight) nx = o.x+o.w+PLAYER_RADIUS;
-        else if(minOverlap===overlapTop) ny = o.y-PLAYER_RADIUS;
-        else ny = o.y+o.h+PLAYER_RADIUS;
-      }
-    });
-    p.x = nx; p.y = ny;
+  if(inp.jump && p.grounded){
+    p.vy = -JUMP_FORCE;
+    p.grounded = false;
   }
+  p.vy += GRAVITY;
 
-  // tag detection: only the "it" player can tag
-  if(itId && players[itId]){
-    const itP = players[itId];
-    for(const id in players){
-      if(id===itId) continue;
-      const p = players[id];
-      if(performance.now() < p.immuneUntil) continue;
-      if(performance.now() < itP.immuneUntil) continue;
-      if(dist(itP.x,itP.y,p.x,p.y) < TAG_DISTANCE){
-        // tag!
-        const oldIt = itId;
-        players[oldIt].it = false;
-        players[oldIt].score += 1;
-        players[oldIt].immuneUntil = performance.now() + TAG_COOLDOWN*1000;
-        p.immuneUntil = performance.now() + TAG_COOLDOWN*1000;
-        itId = id;
-        players[id].it = true;
-        const tagMsg = {type:'tagged', taggedId:id, byId:oldIt};
-        for(const c in conns) conns[c].send(tagMsg);
-        if(id===myId || oldIt===myId) handleClientMessage(tagMsg);
-        break;
+  p.x += p.vx;
+  p.y += p.vy;
+
+  p.grounded = false;
+  if(p.x < 0) p.x = 0;
+  if(p.x + PLAYER_W > ARENA.w) p.x = ARENA.w - PLAYER_W;
+  if(p.y < 0){ p.y = 0; if(p.vy<0) p.vy = 0; }
+
+  const entity = {x:p.x,y:p.y,w:PLAYER_W,h:PLAYER_H};
+
+  for(const plat of PLATFORMS){
+    const platBox = {x:plat.x,y:plat.y,w:plat.width,h:plat.height};
+    if(!plat.solid){
+      // one-way platform: only collide when falling onto it from above
+      if(inp.drop) continue;
+      if(p.vy < 0) continue;
+      if(aabb(entity, platBox)){
+        const feetPrev = (p.y - p.vy) + PLAYER_H;
+        if(feetPrev <= plat.y + 4){
+          p.y = plat.y - PLAYER_H;
+          p.vy = 0;
+          p.grounded = true;
+          entity.y = p.y;
+        }
+      }
+    } else {
+      if(aabb(entity, platBox)){
+        const overlapX = Math.min(entity.x+entity.w, platBox.x+platBox.w) - Math.max(entity.x, platBox.x);
+        const overlapY = Math.min(entity.y+entity.h, platBox.y+platBox.h) - Math.max(entity.y, platBox.y);
+        if(overlapX < overlapY){
+          if(p.vx > 0) p.x -= overlapX;
+          else if(p.vx < 0) p.x += overlapX;
+          entity.x = p.x;
+        } else {
+          if(p.vy > 0){
+            p.y -= overlapY; p.vy = 0; p.grounded = true;
+          } else if(p.vy < 0){
+            p.y += overlapY; p.vy = 0;
+          }
+          entity.y = p.y;
+        }
       }
     }
   }
+
+  if(p.immuneFrames>0) p.immuneFrames--;
+}
+
+function checkTagsAuthoritative(sendTagMsg){
+  if(!itId || !players[itId]) return;
+  const itP = players[itId];
+  if(itP.immuneFrames>0) return;
+  const itBox = {x:itP.x,y:itP.y,w:PLAYER_W,h:PLAYER_H};
+  for(const id in players){
+    if(id===itId) continue;
+    const p = players[id];
+    if(p.immuneFrames>0) continue;
+    const pBox = {x:p.x,y:p.y,w:PLAYER_W,h:PLAYER_H};
+    if(aabb(itBox,pBox)){
+      const oldIt = itId;
+      players[oldIt].it = false;
+      players[oldIt].score += 1;
+      players[oldIt].immuneFrames = TAG_COOLDOWN_FRAMES;
+      p.immuneFrames = TAG_COOLDOWN_FRAMES;
+      itId = id;
+      players[id].it = true;
+      if(sendTagMsg) sendTagMsg(oldIt, id);
+      break;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Host simulation loop (online, authoritative)
+--------------------------------------------------------------------- */
+let lastFrameTime = 0;
+function hostLoop(now){
+  if(gameMode!=='online' || !isHost || gameState!=='playing'){ return; }
+  const dt = Math.min(0.05, (now-lastFrameTime)/1000 || 0.016);
+  lastFrameTime = now;
+
+  for(const id in players){
+    stepPlayerPhysics(players[id]);
+  }
+
+  checkTagsAuthoritative((oldIt,newIt)=>{
+    const tagMsg = {type:'tagged', taggedId:newIt, byId:oldIt};
+    for(const c in conns) conns[c].send(tagMsg);
+    if(newIt===myId || oldIt===myId) handleClientMessage(tagMsg);
+  });
 
   timeLeft -= dt;
   if(timeLeft<=0){
@@ -952,10 +1066,44 @@ function hostLoop(now){
   requestAnimationFrame(hostLoop);
 }
 
+/* ---------------------------------------------------------------------
+   Local same-keyboard loop
+--------------------------------------------------------------------- */
+function localLoop(now){
+  if(gameMode!=='local' || gameState!=='playing'){ return; }
+  const dt = Math.min(0.05, (now-lastFrameTime)/1000 || 0.016);
+  lastFrameTime = now;
+
+  players.p1.input = {
+    left: keys['keya'], right: keys['keyd'],
+    jump: keys['keyw'], drop: keys['keys'],
+  };
+  players.p2.input = {
+    left: keys['arrowleft'], right: keys['arrowright'],
+    jump: keys['arrowup'], drop: keys['arrowdown'],
+  };
+
+  stepPlayerPhysics(players.p1);
+  stepPlayerPhysics(players.p2);
+
+  checkTagsAuthoritative((oldIt,newIt)=>{
+    showToast((newIt==='p1'?'PLAYER 1':'PLAYER 2') + " IS IT!");
+  });
+
+  timeLeft -= dt;
+  if(timeLeft<=0){
+    timeLeft = 0;
+    gameState='ended';
+    showEndScreen();
+    return;
+  }
+
+  requestAnimationFrame(localLoop);
+}
+
 function showEndScreen(){
-  hud.classList.remove('active');
+  gameScreen.classList.remove('active');
   endOverlay.classList.add('active');
-  // "it" player at the end has lowest standing implicitly; score = times survived as non-it via tags made
   const sorted = Object.values(players).slice().sort((a,b)=> (b.score||0)-(a.score||0));
   endSubtitle.textContent = itId && players[itId] ? (players[itId].name.toUpperCase()+' WAS LEFT HOLDING IT') : 'ROUND COMPLETE';
   endScoreList.innerHTML='';
@@ -970,62 +1118,45 @@ function showEndScreen(){
 }
 
 /* ---------------------------------------------------------------------
-   Local input (keyboard + touch joystick)
+   Local input (keyboard + touch)
 --------------------------------------------------------------------- */
 const keys = {};
-window.addEventListener('keydown', e=>{ keys[e.key.toLowerCase()]=true; });
-window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
+window.addEventListener('keydown', e=>{ keys[e.key.toLowerCase()]=true; keys[e.code.toLowerCase()]=true; });
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; keys[e.code.toLowerCase()]=false; });
 
-let joyActive=false, joyVec={x:0,y:0};
 function isTouchDevice(){ return 'ontouchstart' in window || navigator.maxTouchPoints>0; }
 
-function setupJoystick(){
-  const base = joystick;
-  let startX=0, startY=0;
-  const handleMove = (clientX, clientY)=>{
-    const rect = base.getBoundingClientRect();
-    const cx = rect.left+rect.width/2;
-    const cy = rect.top+rect.height/2;
-    let dx = clientX-cx, dy = clientY-cy;
-    const maxR = rect.width/2;
-    const d = Math.hypot(dx,dy);
-    if(d>maxR){ dx = dx/d*maxR; dy = dy/d*maxR; }
-    joyHandle.style.left = (35+dx)+'px';
-    joyHandle.style.top = (35+dy)+'px';
-    joyVec.x = dx/maxR; joyVec.y = dy/maxR;
-  };
-  base.addEventListener('touchstart', e=>{ joyActive=true; handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
-  base.addEventListener('touchmove', e=>{ if(joyActive) handleMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive:false});
-  base.addEventListener('touchend', e=>{
-    joyActive=false; joyVec={x:0,y:0};
-    joyHandle.style.left='35px'; joyHandle.style.top='35px';
-    e.preventDefault();
-  }, {passive:false});
+function bindTouchButton(el, setter){
+  el.addEventListener('touchstart', e=>{ setter(true); e.preventDefault(); }, {passive:false});
+  el.addEventListener('touchend', e=>{ setter(false); e.preventDefault(); }, {passive:false});
+  el.addEventListener('touchcancel', e=>{ setter(false); e.preventDefault(); }, {passive:false});
 }
-setupJoystick();
+const touchState = {left:false,right:false,jump:false};
+bindTouchButton(document.getElementById('btnLeft'),  v=>touchState.left=v);
+bindTouchButton(document.getElementById('btnRight'), v=>touchState.right=v);
+bindTouchButton(document.getElementById('btnJump'),  v=>touchState.jump=v);
 
-function getInputVector(){
-  let x=0,y=0;
-  if(keys['arrowleft']||keys['a']) x-=1;
-  if(keys['arrowright']||keys['d']) x+=1;
-  if(keys['arrowup']||keys['w']) y-=1;
-  if(keys['arrowdown']||keys['s']) y+=1;
-  if(joyActive){ x += joyVec.x; y += joyVec.y; }
-  const len = Math.hypot(x,y);
-  if(len>1){ x/=len; y/=len; }
-  return {x,y};
+function getOnlineInput(){
+  return {
+    left: !!(keys['keya']||keys['arrowleft']||touchState.left),
+    right: !!(keys['keyd']||keys['arrowright']||touchState.right),
+    jump: !!(keys['keyw']||keys['arrowup']||keys['space']||touchState.jump),
+    drop: !!(keys['keys']||keys['arrowdown']),
+  };
 }
 
 let lastInputSend = 0;
 function inputLoop(){
-  const inp = getInputVector();
-  if(isHost && players[myId]){
-    players[myId].input = inp;
-  } else if(hostConn && hostConnOpen){
-    const now = performance.now();
-    if(now-lastInputSend > 40){ // ~25hz
-      hostConn.send({type:'input', id:myId, input:inp});
-      lastInputSend = now;
+  if(gameMode==='online' && gameState==='playing'){
+    const inp = getOnlineInput();
+    if(isHost && players[myId]){
+      players[myId].input = inp;
+    } else if(hostConn && hostConnOpen){
+      const now = performance.now();
+      if(now-lastInputSend > 33){
+        hostConn.send({type:'input', id:myId, input:inp});
+        lastInputSend = now;
+      }
     }
   }
   requestAnimationFrame(inputLoop);
@@ -1035,16 +1166,8 @@ requestAnimationFrame(inputLoop);
 /* ---------------------------------------------------------------------
    Rendering
 --------------------------------------------------------------------- */
-let camera = {x:0,y:0};
-const trails = {}; // id -> array of {x,y,age}
+const trails = {};
 let particles = [];
-
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
 function showToast(text){
   toastEl.textContent = text;
@@ -1053,60 +1176,26 @@ function showToast(text){
   showToast._t = setTimeout(()=> toastEl.classList.remove('show'), 1500);
 }
 
-function spawnParticles(x,y,color,n=8){
-  for(let i=0;i<n;i++){
-    particles.push({
-      x,y,
-      vx:(Math.random()-0.5)*220,
-      vy:(Math.random()-0.5)*220,
-      life:1, color
-    });
-  }
-}
-let lastTagCount = {};
-function checkTagBursts(){
-  for(const id in players){
-    const p = players[id];
-    if(p.score && lastTagCount[id]!==p.score){
-      lastTagCount[id]=p.score;
-    }
-  }
-}
-
-let lastFrame = performance.now();
+let lastRenderFrame = performance.now();
 function renderLoop(now){
   if(gameState!=='playing'){ return; }
-  const dt = Math.min(0.05,(now-lastFrame)/1000||0.016);
-  lastFrame = now;
+  const dt = Math.min(0.05,(now-lastRenderFrame)/1000||0.016);
+  lastRenderFrame = now;
 
-  const me = players[myId];
-  if(me){
-    camera.x = clamp(me.x - canvas.width/2, 0, Math.max(0,ARENA.w-canvas.width));
-    camera.y = clamp(me.y - canvas.height/2, 0, Math.max(0,ARENA.h-canvas.height));
-  }
-
-  // trails
   Object.values(players).forEach(p=>{
     if(!trails[p.id]) trails[p.id]=[];
-    trails[p.id].push({x:p.x,y:p.y,age:0});
-    if(trails[p.id].length>16) trails[p.id].shift();
+    trails[p.id].push({x:p.x+PLAYER_W/2,y:p.y+PLAYER_H/2});
+    if(trails[p.id].length>10) trails[p.id].shift();
   });
 
-  // background
-  ctx.fillStyle = '#06060f';
+  ctx.fillStyle = '#090918';
   ctx.fillRect(0,0,canvas.width,canvas.height);
   drawGrid();
-
-  ctx.save();
-  ctx.translate(-camera.x, -camera.y);
-
-  drawArenaBounds();
-  drawObstacles();
+  drawPlatforms();
   drawTrails();
 
   Object.values(players).forEach(p=> drawPlayer(p));
 
-  // particles
   particles.forEach(pt=>{
     pt.x += pt.vx*dt; pt.y += pt.vy*dt;
     pt.life -= dt*1.6;
@@ -1121,8 +1210,6 @@ function renderLoop(now){
   });
   particles = particles.filter(p=>p.life>0);
 
-  ctx.restore();
-
   updateHud();
 
   requestAnimationFrame(renderLoop);
@@ -1132,38 +1219,27 @@ function drawGrid(){
   ctx.save();
   ctx.strokeStyle = 'rgba(43,246,255,0.06)';
   ctx.lineWidth = 1;
-  const spacing = 60;
-  const offX = -camera.x % spacing;
-  const offY = -camera.y % spacing;
-  for(let x=offX;x<canvas.width;x+=spacing){
+  const spacing = 40;
+  for(let x=0;x<canvas.width;x+=spacing){
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
   }
-  for(let y=offY;y<canvas.height;y+=spacing){
+  for(let y=0;y<canvas.height;y+=spacing){
     ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
   }
   ctx.restore();
 }
 
-function drawArenaBounds(){
-  ctx.save();
-  ctx.strokeStyle = '#9b2bff';
-  ctx.lineWidth = 6;
-  ctx.shadowColor = '#9b2bff';
-  ctx.shadowBlur = 20;
-  ctx.strokeRect(0,0,ARENA.w,ARENA.h);
-  ctx.restore();
-}
-
-function drawObstacles(){
-  obstacles.forEach(o=>{
+function drawPlatforms(){
+  PLATFORMS.forEach(plat=>{
     ctx.save();
-    ctx.strokeStyle = o.hue;
-    ctx.shadowColor = o.hue;
-    ctx.shadowBlur = 14;
-    ctx.lineWidth = 3;
-    ctx.fillStyle = 'rgba(20,10,40,0.5)';
-    ctx.fillRect(o.x,o.y,o.w,o.h);
-    ctx.strokeRect(o.x,o.y,o.w,o.h);
+    const color = plat.solid ? '#9b2bff' : '#2bf6ff';
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = plat.solid ? 18 : 10;
+    ctx.lineWidth = plat.solid ? 3 : 2;
+    ctx.fillStyle = plat.solid ? 'rgba(40,15,70,0.6)' : 'rgba(10,40,50,0.35)';
+    ctx.fillRect(plat.x,plat.y,plat.width,plat.height);
+    ctx.strokeRect(plat.x,plat.y,plat.width,plat.height);
     ctx.restore();
   });
 }
@@ -1173,11 +1249,11 @@ function drawTrails(){
     const t = trails[p.id];
     if(!t) return;
     t.forEach((pt,i)=>{
-      const alpha = (i/t.length)*0.25;
+      const alpha = (i/t.length)*0.2;
       ctx.beginPath();
       ctx.fillStyle = p.color;
       ctx.globalAlpha = alpha;
-      ctx.arc(pt.x,pt.y, PLAYER_RADIUS*0.6, 0, Math.PI*2);
+      ctx.arc(pt.x,pt.y, PLAYER_W*0.45, 0, Math.PI*2);
       ctx.fill();
       ctx.globalAlpha = 1;
     });
@@ -1185,58 +1261,59 @@ function drawTrails(){
 }
 
 function drawPlayer(p){
-  const immune = performance.now() < (p.immuneUntil||0);
+  const immune = (p.immuneFrames||0) > 0;
+  const cx = p.x + PLAYER_W/2, cy = p.y + PLAYER_H/2;
   ctx.save();
-  ctx.translate(p.x,p.y);
+  ctx.translate(cx,cy);
 
-  // glow ring
   ctx.beginPath();
-  ctx.arc(0,0,PLAYER_RADIUS+ (p.it?8:4), 0, Math.PI*2);
+  ctx.rect(-PLAYER_W/2-3, -PLAYER_H/2-3, PLAYER_W+6, PLAYER_H+6);
   ctx.strokeStyle = p.it ? '#fff52b' : p.color;
   ctx.lineWidth = p.it?4:2;
   ctx.shadowColor = p.it ? '#fff52b' : p.color;
-  ctx.shadowBlur = p.it?26:14;
+  ctx.shadowBlur = p.it?22:12;
   ctx.globalAlpha = immune ? 0.5+Math.sin(performance.now()/80)*0.3 : 1;
   ctx.stroke();
 
-  // body
   ctx.beginPath();
   ctx.fillStyle = p.color;
-  ctx.shadowBlur = 16;
-  ctx.arc(0,0,PLAYER_RADIUS,0,Math.PI*2);
+  ctx.shadowBlur = 14;
+  ctx.rect(-PLAYER_W/2,-PLAYER_H/2,PLAYER_W,PLAYER_H);
   ctx.fill();
   ctx.globalAlpha = 1;
 
   ctx.restore();
 
-  // name label
   ctx.save();
-  ctx.translate(p.x,p.y);
-  ctx.font = 'bold 13px Courier New';
+  ctx.font = 'bold 12px Courier New';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   ctx.shadowColor = '#000';
   ctx.shadowBlur = 4;
-  ctx.fillText((p.it?'⚡ ':'')+p.name, 0, -PLAYER_RADIUS-14);
+  ctx.fillText((p.it?'⚡ ':'')+p.name, cx, p.y-10);
   ctx.restore();
 }
 
 function updateHud(){
   const itP = itId? players[itId] : null;
   if(itP){
-    itBadge.textContent = 'IT: ' + itP.name.toUpperCase();
-    itBadge.classList.toggle('youAreIt', itId===myId);
+    if(gameMode==='local'){
+      itBadge.textContent = 'IT: ' + itP.name.toUpperCase();
+      itBadge.classList.remove('youAreIt');
+    } else {
+      itBadge.textContent = 'IT: ' + itP.name.toUpperCase();
+      itBadge.classList.toggle('youAreIt', itId===myId);
+    }
   }
   const mins = Math.floor(timeLeft/60);
   const secs = Math.floor(timeLeft%60);
   timerBadge.textContent = mins+':'+String(secs).padStart(2,'0');
 
-  // scoreboard
   const sorted = Object.values(players).slice().sort((a,b)=>(b.score||0)-(a.score||0));
-  scoreboardEl.innerHTML = sorted.map(p=>`
-    <div class="scoreRow">
-      <div class="scoreName"><div class="scoreDot" style="background:${p.color};color:${p.color}"></div>${escapeHtml(p.name)}${p.id===myId?' (you)':''}</div>
-      <div>${p.score||0}</div>
+  scoreStrip.innerHTML = sorted.map(p=>`
+    <div class="scoreChip">
+      <div class="scoreDot" style="background:${p.color};color:${p.color}"></div>
+      ${escapeHtml(p.name)}${p.id===myId?' (you)':''}: ${p.score||0}
     </div>`).join('');
 }
 
@@ -1254,8 +1331,13 @@ tabJoin.addEventListener('click', ()=>{
   setStatus('');
 });
 
+localBtn.addEventListener('click', ()=>{
+  startLocalGame();
+});
+
 createBtn.addEventListener('click', ()=>{
   myName = nameInput.value.trim() || 'Host';
+  gameMode = 'online';
   hostCreateRoom();
 });
 
@@ -1276,7 +1358,9 @@ startBtn.addEventListener('click', ()=>{
 
 playAgainBtn.addEventListener('click', ()=>{
   endOverlay.classList.remove('active');
-  if(isHost){
+  if(gameMode==='local'){
+    backToLobby();
+  } else if(isHost){
     homeOverlay.classList.remove('hidden');
     renderLobbyList();
     startBtn.classList.remove('hidden');
@@ -1286,7 +1370,22 @@ playAgainBtn.addEventListener('click', ()=>{
   }
 });
 
-connStatusEl.textContent = '';
+quitBtn.addEventListener('click', ()=>{
+  if(gameMode==='online'){
+    if(hostConn) hostConn.close();
+    if(peer) peer.destroy();
+    for(const c in conns){ try{conns[c].close();}catch(e){} }
+    conns = {};
+    players = {};
+    isHost = false;
+  } else {
+    players = {};
+  }
+  gameMode = null;
+  gameState = 'lobby';
+  backToLobby();
+  setStatus('');
+});
 
 })();
 </script>
