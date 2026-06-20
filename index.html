@@ -521,6 +521,7 @@ myName = nameInput.value;
 let peer = null;
 let conns = {};          // peerId -> DataConnection  (host only, keyed by peerjs id)
 let hostConn = null;     // client only
+let hostConnOpen = false; // true only after the DataConnection 'open' event fires
 let players = {};        // id -> {id,name,color,x,y,vx,vy,it,score,immuneUntil,connected}
 let gameState = 'lobby'; // lobby | playing | ended
 let itId = null;
@@ -684,7 +685,7 @@ function broadcastLobbyIfNeeded(){
     players[myId].color = myColor;
     renderLobbyList();
     broadcastLobby();
-  } else if(hostConn){
+  } else if(hostConn && hostConnOpen){
     hostConn.send({type:'updateProfile', id:myId, name:myName, color:myColor});
   }
 }
@@ -713,11 +714,25 @@ function broadcastState(){
 function clientJoinRoom(code){
   setStatus('Connecting...', '');
   joinBtn.disabled = true;
+  hostConnOpen = false;
   createPeer(()=>{
     const targetId = 'neontag-' + code.toLowerCase();
     const conn = peer.connect(targetId, {reliable:true});
     hostConn = conn;
+
+    const connectTimeout = setTimeout(()=>{
+      if(!hostConnOpen){
+        setStatus('Could not reach that room. Check the code and try again.', 'error');
+        joinBtn.disabled = false;
+        hostConn = null;
+        hostConnOpen = false;
+        if(peer) peer.destroy();
+      }
+    }, 10000);
+
     conn.on('open', ()=>{
+      clearTimeout(connectTimeout);
+      hostConnOpen = true;
       isHost = false;
       myId = uid();
       conn.send({type:'join', id:myId, name:myName, color:myColor});
@@ -727,11 +742,15 @@ function clientJoinRoom(code){
     });
     conn.on('data', data=>{ handleClientMessage(data); });
     conn.on('close', ()=>{
+      clearTimeout(connectTimeout);
+      hostConnOpen = false;
       setStatus('Disconnected from host.', 'error');
       joinBtn.disabled = false;
       backToLobby();
     });
     conn.on('error', err=>{
+      clearTimeout(connectTimeout);
+      hostConnOpen = false;
       console.error(err);
       setStatus('Could not connect. Check the room code.', 'error');
       joinBtn.disabled = false;
@@ -972,7 +991,7 @@ function inputLoop(){
   const inp = getInputVector();
   if(isHost && players[myId]){
     players[myId].input = inp;
-  } else if(hostConn){
+  } else if(hostConn && hostConnOpen){
     const now = performance.now();
     if(now-lastInputSend > 40){ // ~25hz
       hostConn.send({type:'input', id:myId, input:inp});
