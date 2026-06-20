@@ -300,27 +300,35 @@
   }
   #quitBtn:hover{border-color:var(--pink);color:var(--pink);}
 
-  /* mobile touch controls */
+  /* mobile touch controls — fixed vertical sidebars on screen edges */
   #mobileControls{
     display:none;
-    width:100%;
-    max-width:900px;
-    justify-content:space-between;
-    margin-top:12px;
   }
-  #mobileControls.show{display:flex;}
+  #mobileControls.show .touchSidebar{display:flex;}
+  .touchSidebar{
+    display:none;
+    position:fixed;
+    top:50%;
+    transform:translateY(-50%);
+    flex-direction:column;
+    gap:16px;
+    z-index:40;
+    pointer-events:auto;
+  }
+  #sidebarLeft{ left:14px; }
+  #sidebarRight{ right:14px; }
   .touch-btn{
-    background:rgba(43,246,255,0.1);
-    border:2px solid rgba(43,246,255,0.4);
+    background:rgba(43,246,255,0.12);
+    border:2px solid rgba(43,246,255,0.45);
     color:var(--cyan);
-    font-size:28px;
+    font-size:26px;
     border-radius:14px;
-    width:64px;height:58px;
+    width:58px;height:58px;
     display:flex;align-items:center;justify-content:center;
     user-select:none;-webkit-user-select:none;
+    box-shadow:0 0 14px rgba(43,246,255,0.2);
   }
-  .touch-btn:active{background:rgba(43,246,255,0.3);}
-  .touchGroupLeft{display:flex;gap:14px;}
+  .touch-btn:active{background:rgba(43,246,255,0.35);}
 
   .toast{
     position:fixed;
@@ -425,11 +433,14 @@
       <canvas id="gameCanvas" width="900" height="560"></canvas>
       <div id="controlsHint">WASD or Arrow Keys to move &middot; W / Up / Space to jump &middot; S / Down to drop through ledges</div>
       <div id="mobileControls">
-        <div class="touchGroupLeft">
+        <div class="touchSidebar" id="sidebarLeft">
           <div class="touch-btn" id="btnLeft">&#9664;</div>
           <div class="touch-btn" id="btnRight">&#9654;</div>
         </div>
-        <div class="touch-btn" id="btnJump">&#9650;</div>
+        <div class="touchSidebar" id="sidebarRight">
+          <div class="touch-btn" id="btnJump">&#9650;</div>
+          <div class="touch-btn" id="btnDrop">&#9660;</div>
+        </div>
       </div>
       <div style="text-align:center;">
         <button id="quitBtn">QUIT TO MENU</button>
@@ -477,7 +488,7 @@ const ARENA = { w: 900, h: 560 };
 const PLAYER_W = 30, PLAYER_H = 30;
 const GRAVITY = 0.6;
 const FRICTION = 0.85;
-const MOVE_SPEED = 6;
+const MOVE_SPEED = 9;
 const JUMP_FORCE = 15;
 const TAG_COOLDOWN_FRAMES = 60; // ~1s at 60fps
 const GAME_DURATION = 180; // seconds
@@ -1157,17 +1168,18 @@ function bindTouchButton(el, setter){
   el.addEventListener('touchend', e=>{ setter(false); e.preventDefault(); }, {passive:false});
   el.addEventListener('touchcancel', e=>{ setter(false); e.preventDefault(); }, {passive:false});
 }
-const touchState = {left:false,right:false,jump:false};
+const touchState = {left:false,right:false,jump:false,drop:false};
 bindTouchButton(document.getElementById('btnLeft'),  v=>touchState.left=v);
 bindTouchButton(document.getElementById('btnRight'), v=>touchState.right=v);
 bindTouchButton(document.getElementById('btnJump'),  v=>touchState.jump=v);
+bindTouchButton(document.getElementById('btnDrop'),  v=>touchState.drop=v);
 
 function getOnlineInput(){
   return {
     left: !!(keys['keya']||keys['arrowleft']||touchState.left),
     right: !!(keys['keyd']||keys['arrowright']||touchState.right),
     jump: !!(keys['keyw']||keys['arrowup']||keys['space']||touchState.jump),
-    drop: !!(keys['keys']||keys['arrowdown']),
+    drop: !!(keys['keys']||keys['arrowdown']||touchState.drop),
   };
 }
 
